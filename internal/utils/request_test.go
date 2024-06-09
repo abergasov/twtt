@@ -3,10 +3,10 @@ package utils_test
 import (
 	"context"
 	"fmt"
-	"go_project_template/internal/utils"
 	"net/http"
 	"testing"
 	"time"
+	"twtt/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"

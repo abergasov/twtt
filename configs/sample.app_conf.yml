@@ -1,9 +1,9 @@
 app_port: 8000
-migrates_folder: migrations
-conf_db:
-  address: 127.0.0.1
-  port: 5449
-  user: aHAjeK
-  pass: AOifjwelmc8dw
-  db_name: sybill
-  max_connections: 10
+conf_balancer:
+  normal_retries: 3
+  timeout: 3ms
+  rpc_nodes:
+    - "https://mainnet.infura.io/v3/abc"
+    - "https://drpc-eth-node-frnx-02.rpc.p2p.world/abc"
+  rpc_fallback_nodes:
+    - "https://rpc.ankr.com/eth/abc"

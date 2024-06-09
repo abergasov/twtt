@@ -1,19 +1,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
-	"go_project_template/internal/config"
-	"go_project_template/internal/logger"
-	samplerRepo "go_project_template/internal/repository/sampler"
-	"go_project_template/internal/routes"
-	samplerService "go_project_template/internal/service/sampler"
-	"go_project_template/internal/storage/database"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+	"twtt/internal/config"
+	"twtt/internal/logger"
+	"twtt/internal/repository/memory"
+	"twtt/internal/routes"
+	ethnodes "twtt/internal/service/eth_nodes"
+	"twtt/internal/service/indexator"
 )
 
 var (
@@ -22,34 +21,33 @@ var (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
 	flag.Parse()
 	appLog := logger.NewAppSLogger(appHash)
 
-	appLog.Info("app starting", slog.String("conf", *confFile))
+	appLog.Info("app starting", logger.WithString("conf", *confFile))
 	appConf, err := config.InitConf(*confFile)
 	if err != nil {
-		appLog.Fatal("unable to init config", err, slog.String("config", *confFile))
+		appLog.Fatal("unable to init config", err, logger.WithString("config", *confFile))
 	}
-
-	appLog.Info("create storage connections")
-	dbConn, err := getDBConnect(appLog, &appConf.ConfigDB, appConf.MigratesFolder)
-	if err != nil {
-		appLog.Fatal("unable to connect to db", err, slog.String("host", appConf.ConfigDB.Address))
-	}
-	defer func() {
-		if err = dbConn.Close(); err != nil {
-			appLog.Fatal("unable to close db connection", err)
-		}
-	}()
 
 	appLog.Info("init repositories")
-	repo := samplerRepo.InitRepo(dbConn)
+	repo := memory.NewStorage()
 
 	appLog.Info("init services")
-	service := samplerService.InitService(appLog, repo)
+	balancerEL := ethnodes.NewELBalancer(
+		appLog,
+		appConf.BalancerConf.NormalURLs,
+		appConf.BalancerConf.FallbackURLs,
+		appConf.BalancerConf.NormalRetries,
+		&appConf.BalancerConf.Timeout,
+	)
+
+	srv := indexator.NewService(ctx, appLog, balancerEL, repo)
+	go srv.Run()
 
 	appLog.Info("init http service")
-	appHTTPServer := routes.InitAppRouter(appLog, service, fmt.Sprintf(":%d", appConf.AppPort))
+	appHTTPServer := routes.InitAppRouter(appLog, srv, fmt.Sprintf(":%d", appConf.AppPort))
 	defer func() {
 		if err = appHTTPServer.Stop(); err != nil {
 			appLog.Fatal("unable to stop http service", err)
@@ -65,16 +63,5 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c // This blocks the main thread until an interrupt is received
-}
-
-func getDBConnect(log logger.AppLogger, cnf *config.DBConf, migratesFolder string) (*database.DBConnect, error) {
-	for i := 0; i < 5; i++ {
-		dbConnect, err := database.InitDBConnect(cnf, migratesFolder)
-		if err == nil {
-			return dbConnect, nil
-		}
-		log.Error("can't connect to db", err, slog.Int("attempt", i))
-		time.Sleep(time.Duration(i) * time.Second * 5)
-	}
-	return nil, fmt.Errorf("can't connect to db")
+	cancel()
 }

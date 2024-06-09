@@ -3,11 +3,11 @@ package logger_test
 import (
 	"bytes"
 	"fmt"
-	"go_project_template/internal/logger"
 	"io"
 	"os"
 	"sync"
 	"testing"
+	"twtt/internal/logger"
 
 	"github.com/google/uuid"
 )
@@ -108,7 +108,6 @@ func concurrentlyLogIt(appLog logger.AppLogger) {
 }
 
 type TestLogger struct {
-	logsS      [][]byte
 	logs       bytes.Buffer
 	std        io.Writer
 	logsChan   chan []byte
