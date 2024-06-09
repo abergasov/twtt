@@ -7,7 +7,7 @@ make lint && make test
 ```shell
 cp configs/sample.app_conf.yml configs/app_conf.yml
 ```
-populate `configs/app_conf.yml` with your eth rpc urls. you can us same urls as fallback for simplification.
+populate `configs/app_conf.yml` with your eth rpc urls. you can use same urls as fallback for simplification.
 
 
 usage:

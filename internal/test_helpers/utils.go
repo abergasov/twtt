@@ -25,7 +25,6 @@ func InitMainetRPC(t *testing.T) {
 	if rawRPC == "" {
 		t.Fatal("RPC_URLS env variable is not set")
 	}
-	rawRPC = "https://rpc.ankr.com/eth/660eb7902dae14909a7f4def2456a39b636b73165f79870185036990e866da18"
 	rpcList := strings.Split(rawRPC, ",")
 	r := rand.New(rand.NewSource(uint64(time.Now().UnixNano()))) // nolint:gosec
 	r.Shuffle(len(rpcList), func(i, j int) { rpcList[i], rpcList[j] = rpcList[j], rpcList[i] })
